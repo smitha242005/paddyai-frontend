@@ -1,3 +1,6 @@
+/* ── RENDER BACKEND URL ── */
+const PADDYAI_API = 'https://paddyai-backend.onrender.com';
+
 /* ── FILE UPLOAD ── */
 function handleDrop(e) {
   e.preventDefault();
@@ -54,7 +57,6 @@ async function analyzeImage() {
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true;
 
-  // Show progress
   const pbox = document.getElementById('progress-box');
   pbox.style.display = 'block';
   document.getElementById('results-area').style.display = 'none';
@@ -70,43 +72,13 @@ async function analyzeImage() {
   }, 600);
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Call Render Backend ──
+    const resp = await fetch(`${PADDYAI_API}/predict/disease`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: uploadedMediaType, data: uploadedBase64 }
-            },
-            {
-              type: 'text',
-              text: `You are a senior agricultural scientist specialising in paddy (rice) cultivation and crop science. Analyse this crop image very carefully and return ONLY a valid JSON object — no markdown, no backticks, no extra text. Use exactly this structure:
-
-{
-  "cropType": "exact paddy/crop variety name detected",
-  "healthStatus": "Healthy | Damaged | Partially Damaged",
-  "damageType": "specific disease/pest name or null if healthy",
-  "soilType": "best soil type for this crop",
-  "soilPH": "optimal pH range e.g. 6.0–7.0",
-  "fertilizer": "NPK recommendation e.g. NPK 120:60:60 kg/ha",
-  "pesticide": "specific pesticide name if needed or 'Not required – crop is healthy'",
-  "waterPerDay": "e.g. 5–6 litres per plant per day",
-  "irrigationMethod": "recommended method e.g. Flood irrigation, SRI, Drip",
-  "growthMonth": "sowing to maturity e.g. June (sowing) → October (maturity)",
-  "harvestMonth": "optimal harvest window e.g. October – November",
-  "estimatedYield": "e.g. 4.5–5.5 tonnes/hectare",
-  "treatmentPlan": "detailed step-by-step recovery plan if damaged, or null",
-  "medicine": "specific fungicide/bactericide/medicine name or null",
-  "generalTips": "3 key cultivation tips specific to this crop and season"
-}`
-            }
-          ]
-        }]
+        image: uploadedBase64,
+        media_type: uploadedMediaType
       })
     });
 
@@ -118,14 +90,35 @@ async function analyzeImage() {
     await new Promise(r => setTimeout(r, 600));
     pbox.style.display = 'none';
 
-    const data = await resp.json();
-    const text = (data.content || []).map(c => c.text || '').join('');
-    let parsed;
-    try {
-      parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-    } catch {
-      parsed = buildFallback();
-    }
+    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+
+    const d = await resp.json();
+
+    // Map backend response to analysis format
+    const parsed = {
+      cropType: d.cropVariety || 'Paddy — Oryza sativa',
+      healthStatus: d.overallVerdict === 'Good' ? 'Healthy' : 'Damaged',
+      damageType: d.diseaseDetection?.primaryDisease !== 'Healthy' ? d.diseaseDetection?.primaryDisease : null,
+      soilType: d.yieldPrediction?.soilType || 'Clayey loam',
+      soilPH: '6.0 – 7.0',
+      fertilizer: d.yieldPrediction?.fertilizer || 'NPK 120:60:60 kg/ha',
+      pesticide: d.diseaseDetection?.primaryDisease !== 'Healthy'
+        ? 'Tricyclazole 75% WP @ 0.6g/litre'
+        : 'Not required – crop is healthy',
+      waterPerDay: d.yieldPrediction?.waterRequirement || '5–6 litres per plant per day',
+      irrigationMethod: 'Flood irrigation (2–5 cm standing water)',
+      growthMonth: 'June (sowing) → October (maturity)',
+      harvestMonth: d.yieldPrediction?.harvestMonth || 'October – November',
+      estimatedYield: d.yieldPrediction?.predictedYield || '4.5–5.5 t/ha',
+      treatmentPlan: d.diseaseDetection?.primaryDisease !== 'Healthy'
+        ? `1. Apply recommended fungicide immediately.\n2. Remove infected leaves carefully.\n3. Improve drainage and air circulation.\n4. Monitor field every 3 days.\n5. Re-apply treatment after 7 days if needed.`
+        : null,
+      medicine: d.diseaseDetection?.primaryDisease !== 'Healthy'
+        ? 'Tricyclazole + Mancozeb combination'
+        : null,
+      generalTips: d.recommendations?.map(r => r.text).join(' ') ||
+        'Maintain 5 cm standing water during tillering. Apply urea in 3 splits. Use certified seeds for best yield.'
+    };
 
     renderResults(parsed);
     saveToHistory(parsed);
@@ -136,31 +129,12 @@ async function analyzeImage() {
     document.getElementById('results-area').style.display = 'block';
     document.getElementById('results-area').innerHTML = `
       <div style="background:#fff3f3;border:1.5px solid rgba(239,68,68,.25);border-radius:12px;padding:1.5rem;color:#b91c1c;font-size:.93rem">
-        ⚠️ <strong>Analysis failed.</strong> Please check your connection and try again.
+        ⚠️ <strong>Analysis failed.</strong> Backend may be starting up — please wait 30 seconds and try again.
+        <br><small style="color:#aaa">Error: ${err.message}</small>
       </div>`;
   }
 
   btn.disabled = false;
-}
-
-function buildFallback() {
-  return {
-    cropType: 'Paddy — Oryza sativa (IR64)',
-    healthStatus: 'Healthy',
-    damageType: null,
-    soilType: 'Clayey loam / Alluvial soil',
-    soilPH: '6.0 – 7.0',
-    fertilizer: 'NPK 120:60:60 kg/ha (split application)',
-    pesticide: 'Not required – crop is healthy',
-    waterPerDay: '5–6 litres per plant per day',
-    irrigationMethod: 'Flood irrigation (2–5 cm standing water)',
-    growthMonth: 'June (sowing) → October (maturity)',
-    harvestMonth: 'October – November',
-    estimatedYield: '4.5–5.5 tonnes/hectare',
-    treatmentPlan: null,
-    medicine: null,
-    generalTips: 'Maintain 5 cm standing water during tillering. Apply urea in 3 splits for best nitrogen uptake. Use certified seeds for 15–20% higher yield.'
-  };
 }
 
 function renderResults(d) {
@@ -211,9 +185,8 @@ function renderResults(d) {
         <div class="r-val">${d.damageType}</div>
       </div>`;
   }
-  html += `</div>`; // close result-grid
+  html += `</div>`;
 
-  // Treatment plan
   if (isDamaged && d.treatmentPlan) {
     html += `
       <div class="full-card" style="border-left:4px solid #ef4444">
@@ -223,7 +196,6 @@ function renderResults(d) {
       </div>`;
   }
 
-  // General tips
   html += `
     <div class="full-card">
       <h4>💡 Cultivation Tips</h4>
