@@ -1,3 +1,4 @@
+/* ── PADDYAI_API is declared in diagnose.js ── */
 /* ── FILE UPLOAD ── */
 function handleDrop(e) {
   e.preventDefault();

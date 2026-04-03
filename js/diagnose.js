@@ -4,11 +4,6 @@
 let modelBase64 = null;
 let modelMediaType = null;
 
-/* ══════════════════════════════════
-   REAL ML BACKEND URL
-══════════════════════════════════ */
-const PADDYAI_API = 'https://paddyai-backend.onrender.com';
-
 function modelHandleDrop(e) {
   e.preventDefault();
   document.getElementById('model-drop-zone').classList.remove('drag');

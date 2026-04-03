@@ -1,3 +1,4 @@
+const PADDYAI_API = 'https://paddyai-backend.onrender.com';
 /* ── STATE ── */
 let currentUser = null;
 let uploadedFile = null;
