@@ -1,5 +1,4 @@
-/* ── RENDER BACKEND URL ── */
-const PADDYAI_API = 'https://paddyai-backend.onrender.com';
+
 
 /* ── FILE UPLOAD ── */
 function handleDrop(e) {

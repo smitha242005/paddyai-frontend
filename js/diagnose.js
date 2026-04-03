@@ -4,6 +4,11 @@
 let modelBase64 = null;
 let modelMediaType = null;
 
+/* ══════════════════════════════════
+   REAL ML BACKEND URL
+══════════════════════════════════ */
+const PADDYAI_API = 'https://paddyai-backend.onrender.com';
+
 function modelHandleDrop(e) {
   e.preventDefault();
   document.getElementById('model-drop-zone').classList.remove('drag');
@@ -63,14 +68,6 @@ const modelMsgs = [
   'Generating full report…',
 ];
 
-/* ══════════════════════════════════
-   REAL ML BACKEND URL
-   After deploying on Render, replace
-   the URL below with your live URL.
-   Example: https://paddyai-backend.onrender.com
-══════════════════════════════════ */
-const PADDYAI_API = 'https://paddyai-backend.onrender.com'; // ← REPLACE with your Render URL
-
 async function runModel() {
   if (!modelBase64) return;
   const btn = document.getElementById('model-run-btn');
@@ -122,12 +119,7 @@ async function runModel() {
     document.getElementById('model-results').innerHTML = `
       <div style="background:#fff3f3;border:1.5px solid rgba(239,68,68,.25);
                   border-radius:12px;padding:1.5rem;color:#b91c1c;line-height:1.8">
-        ⚠️ Cannot reach backend API.<br>
-        <strong>Steps to fix:</strong><br>
-        1. Train your model using the Colab notebook<br>
-        2. Deploy Flask backend to Render<br>
-        3. Replace <code>PADDYAI_API</code> at the top of diagnose.js with your live Render URL<br>
-        4. Reload and try again.<br><br>
+        ⚠️ Cannot reach backend API. Backend may be starting up — wait 30 seconds and try again.<br><br>
         <small style="color:#aaa">Error: ${err.message}</small>
       </div>`;
   }
@@ -175,7 +167,6 @@ function renderModelResults(d) {
   const circumference = 2 * Math.PI * 44;
   const dashOffset = circumference - (score / 100) * circumference;
 
-  // Disease bar colors
   const diseaseRows = dis.classes.map(c => {
     const barColor = c.color || '#5aad5a';
     const isTop = c.name === dis.primaryDisease;
@@ -192,10 +183,8 @@ function renderModelResults(d) {
       </div>`;
   }).join('');
 
-  // Verdict chip color
   const verdictColor = d.overallVerdict === 'Good' ? 'green' : d.overallVerdict === 'Fair' ? 'gold' : 'red';
 
-  // Recommendations
   const recos = (d.recommendations || []).map(r => `
     <li class="reco-item ${r.type === 'warning' ? 'warn' : r.type === 'danger' ? 'danger' : ''}">
       <span class="reco-icon">${r.icon}</span>
@@ -203,7 +192,6 @@ function renderModelResults(d) {
     </li>`).join('');
 
   const html = `
-    <!-- Overall Score -->
     <div class="overall-score-card">
       <div class="score-donut">
         <svg width="110" height="110" viewBox="0 0 110 110">
@@ -229,7 +217,6 @@ function renderModelResults(d) {
       </div>
     </div>
 
-    <!-- Disease Detection -->
     <div class="disease-detection-card">
       <div class="model-card-title"><span class="mct-icon">🔬</span> Diagnose — Disease Detection Results</div>
       <div style="background:var(--cream);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
@@ -248,7 +235,6 @@ function renderModelResults(d) {
       </p>
     </div>
 
-    <!-- Yield Prediction -->
     <div class="yield-pred-card">
       <div class="model-card-title"><span class="mct-icon">🌾</span> Yield Prediction Results</div>
       <div class="yield-metrics-grid">
@@ -289,8 +275,6 @@ function renderModelResults(d) {
           <div class="ym-sub">Current stage</div>
         </div>
       </div>
-
-      <!-- Yield confidence meter -->
       <div class="confidence-meter">
         <div class="cm-top">
           <div class="cm-label">🎯 Yield Prediction Confidence</div>
@@ -302,7 +286,6 @@ function renderModelResults(d) {
       </div>
     </div>
 
-    <!-- Recommendations -->
     <div class="model-card">
       <div class="model-card-title"><span class="mct-icon">💡</span> Model Recommendations</div>
       <ul class="reco-list">${recos}</ul>
@@ -316,7 +299,6 @@ function renderModelResults(d) {
   container.style.display = 'block';
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Animate bars after render
   setTimeout(() => {
     container.querySelectorAll('.disease-bar-fill[data-width]').forEach(el => {
       el.style.width = el.getAttribute('data-width');
