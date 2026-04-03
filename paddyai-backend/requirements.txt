@@ -1,8 +1,0 @@
-flask
-flask-cors
-scikit-learn
-numpy
-pillow
-pandas
-gunicorn
-gdown
