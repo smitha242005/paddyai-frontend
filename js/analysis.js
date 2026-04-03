@@ -1,5 +1,3 @@
-
-
 /* ── FILE UPLOAD ── */
 function handleDrop(e) {
   e.preventDefault();
