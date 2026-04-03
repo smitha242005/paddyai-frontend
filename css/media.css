@@ -1,0 +1,40 @@
+/* ── HAMBURGER (MOBILE NAV) ── */
+.hamburger{
+  display:none;background:none;border:none;
+  flex-direction:column;gap:5px;padding:.4rem;
+  cursor:pointer;
+}
+.hamburger span{
+  display:block;width:22px;height:2px;
+  background:var(--gold-light);border-radius:2px;transition:all .3s;
+}
+.mobile-nav{
+  display:none;position:fixed;top:64px;left:0;right:0;z-index:499;
+  background:rgba(11,46,11,.98);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(201,168,76,.15);
+  flex-direction:column;padding:.5rem 1rem 1rem;
+  animation:slideDown .2s ease;
+}
+.mobile-nav.open{display:flex}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.mobile-nav .nav-btn{
+  text-align:left;padding:.75rem 1rem;font-size:.95rem;border-radius:8px;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .nav-links{display:none}
+  #navbar{padding:0 1rem}
+  .hamburger{display:flex}
+  .hero-stats{gap:1.5rem}
+  .steps-row::before{display:none}
+  .crop-detail-grid{grid-template-columns:1fr}
+  .history-table{font-size:.78rem}
+  .history-table th,.history-table td{padding:.65rem .8rem}
+  .landing-card{padding:2rem 1.3rem}
+  .landing-features{grid-template-columns:1fr}
+  .overall-score-card{flex-direction:column;text-align:center}
+  .disease-name{min-width:120px;font-size:.8rem}
+  .yield-metrics-grid{grid-template-columns:1fr 1fr}
+  .mstep-label{display:none}
+}

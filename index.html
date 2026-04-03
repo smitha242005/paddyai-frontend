@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PaddyAI — Paddy Crop Yield Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Lato:wght@300;400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/home.css"/>
+  <link rel="stylesheet" href="css/analysis.css"/>
+  <link rel="stylesheet" href="css/guide.css"/>
+  <link rel="stylesheet" href="css/auth.css"/>
+  <link rel="stylesheet" href="css/diagnose.css"/>
+  <link rel="stylesheet" href="css/media.css"/>
+</head>
+<body>
+
+
+<!-- ════════════════════════════════
+     LANDING / AUTH SCREEN
+════════════════════════════════ -->
+<div id="landing-screen">
+  <div class="landing-inner">
+    <div class="landing-logo">
+      <span class="ll-icon">🌾</span>
+      PaddyAI
+    </div>
+    <div class="landing-tagline">Paddy Crop Yield Prediction Platform</div>
+
+    <div class="landing-card">
+      <!-- Tabs -->
+      <div class="landing-tabs">
+        <button class="landing-tab active" id="ltab-login" onclick="switchLandingTab('login')">Log In</button>
+        <button class="landing-tab" id="ltab-signup" onclick="switchLandingTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="lform-login">
+        <div class="landing-form-group">
+          <label class="landing-label">Email Address</label>
+          <input class="landing-input" id="l-email" type="email" placeholder="farmer@example.com"/>
+        </div>
+        <div class="landing-form-group">
+          <label class="landing-label">Password</label>
+          <input class="landing-input" id="l-pass" type="password" placeholder="••••••••"/>
+        </div>
+        <button class="landing-submit" onclick="doLandingAuth('login')">Log In & Enter →</button>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div id="lform-signup" style="display:none">
+        <div class="landing-form-group">
+          <label class="landing-label">Full Name</label>
+          <input class="landing-input" id="s-name" placeholder="Your name"/>
+        </div>
+        <div class="landing-form-group">
+          <label class="landing-label">Email Address</label>
+          <input class="landing-input" id="s-email" type="email" placeholder="farmer@example.com"/>
+        </div>
+        <div class="landing-form-group">
+          <label class="landing-label">Password</label>
+          <input class="landing-input" id="s-pass" type="password" placeholder="Create a password"/>
+        </div>
+        <button class="landing-submit" onclick="doLandingAuth('signup')">Create Account & Enter →</button>
+      </div>
+    </div>
+
+    <!-- Features teaser -->
+    <div class="landing-features">
+      <div class="lf-item"><span class="lf-icon">🔬</span>AI crop image analysis</div>
+      <div class="lf-item"><span class="lf-icon">🧪</span>Soil recommendations</div>
+      <div class="lf-item"><span class="lf-icon">💧</span>Water scheduling</div>
+      <div class="lf-item"><span class="lf-icon">🌾</span>Harvest prediction</div>
+      <div class="lf-item"><span class="lf-icon">🐛</span>Pest & disease alerts</div>
+      <div class="lf-item"><span class="lf-icon">📅</span>Growth calendar</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     NAVBAR
+════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-logo" onclick="showPage('home')">
+    <span class="logo-icon">🌾</span>
+    PaddyAI
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('home')" id="nb-home">Home</button>
+    <button class="nav-btn" onclick="showPage('analysis')" id="nb-analysis">Analysis</button>
+    <button class="nav-btn" onclick="showPage('model')" id="nb-model">🩺 Diagnose</button>
+    <button class="nav-btn" onclick="showPage('crops')" id="nb-crops">Crop Types</button>
+    <button class="nav-btn" onclick="showPage('guidance')" id="nb-guidance">Guidance</button>
+    <button class="nav-btn" onclick="showPage('summary')" id="nb-summary">Summary</button>
+    <button class="nav-btn" onclick="showPage('about')" id="nb-about">About</button>
+  </div>
+  <div class="nav-right" id="nav-right">
+    <div class="user-pill"><span>🌾</span><span id="nav-username"></span></div>
+    <button class="btn-nav-logout" onclick="logout()">Logout</button>
+  </div>
+  <!-- Hamburger for mobile -->
+  <button class="hamburger" onclick="toggleMobileNav()" id="hamburger-btn">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobile-nav">
+  <button class="nav-btn" onclick="showPage('home');closeMobileNav()">🏠 Home</button>
+  <button class="nav-btn" onclick="showPage('analysis');closeMobileNav()">🔬 Analysis</button>
+  <button class="nav-btn" onclick="showPage('model');closeMobileNav()">🩺 Diagnose</button>
+  <button class="nav-btn" onclick="showPage('crops');closeMobileNav()">🌿 Crop Types</button>
+  <button class="nav-btn" onclick="showPage('guidance');closeMobileNav()">📚 Guidance</button>
+  <button class="nav-btn" onclick="showPage('summary');closeMobileNav()">📊 Summary</button>
+  <button class="nav-btn" onclick="showPage('about');closeMobileNav()">ℹ️ About</button>
+  <button class="nav-btn" style="color:#ef9a9a;margin-top:.5rem" onclick="logout()">🚪 Logout</button>
+</div>
+
+<!-- ════════════════════════════════
+     AUTH MODAL
+════════════════════════════════ -->
+<div class="modal-bg" id="auth-modal" onclick="closeAuth(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <h2 id="auth-title">Welcome Back 🌾</h2>
+    <p class="modal-sub" id="auth-sub">Log in to access your crop analysis dashboard.</p>
+    <div class="form-group" id="name-group" style="display:none">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" id="inp-name" placeholder="Your name" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="inp-email" type="email" placeholder="farmer@example.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="inp-pass" type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn-form" onclick="doAuth()" id="auth-btn">Log In →</button>
+    <div class="form-switch" id="auth-switch">
+      Don't have an account? <button onclick="toggleAuthMode()">Sign up free</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CROP DETAIL MODAL
+════════════════════════════════ -->
+<div class="modal-bg" id="crop-modal" onclick="closeCropModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeCropModal()">✕</button>
+    <div style="font-size:3.5rem;margin-bottom:.5rem" id="crop-modal-emoji"></div>
+    <h2 id="crop-modal-name"></h2>
+    <p class="modal-sub" id="crop-modal-desc"></p>
+    <div class="crop-detail-grid" id="crop-modal-details"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     HOME PAGE
+════════════════════════════════ -->
+<div class="page active" id="pg-home">
+  <!-- HERO -->
+  <section class="home-hero">
+    <div class="hero-bg-pattern"></div>
+    <div class="hero-floating-grains" id="grains-container"></div>
+    <div class="hero-silhouette"></div>
+
+    <div class="hero-badge" style="position:relative;z-index:2">
+      <span class="hero-badge-dot"></span>
+      🏆 AI-Powered Paddy Cultivation Platform
+    </div>
+    <h1 style="position:relative;z-index:2">
+      Grow Smarter.<br/>
+      <span class="accent">Harvest Better.</span>
+    </h1>
+    <p style="position:relative;z-index:2">
+      Upload your paddy image and receive instant AI recommendations — soil type, pesticides, water schedule, growth calendar, harvest window, and damage treatment plans.
+    </p>
+    <div class="hero-btns" style="position:relative;z-index:2">
+      <button class="btn-hero-primary" onclick="showPage('analysis')">🔬 Analyse My Crop</button>
+      <button class="btn-hero-outline" onclick="showPage('crops')">🌿 Explore Crop Types</button>
+    </div>
+    <div class="hero-stats" style="position:relative;z-index:2">
+      <div class="hstat"><div class="hstat-num">50K+</div><div class="hstat-label">Farmers Helped</div></div>
+      <div class="hstat"><div class="hstat-num">98%</div><div class="hstat-label">Accuracy Rate</div></div>
+      <div class="hstat"><div class="hstat-num">150+</div><div class="hstat-label">Crop Varieties</div></div>
+      <div class="hstat"><div class="hstat-num">24/7</div><div class="hstat-label">AI Support</div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="sec-tag">Our Capabilities</div>
+        <h2 class="sec-title">Everything for a Healthy Paddy Harvest</h2>
+        <p class="sec-sub">From sowing to threshing — our AI covers every stage of paddy cultivation.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feat-card">
+          <div class="feat-icon">🧪</div>
+          <h3>Soil Analysis</h3>
+          <p>Get precise soil type and pH recommendations tailored to your paddy variety from a single image upload.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🐛</div>
+          <h3>Pest & Disease Detection</h3>
+          <p>Identify blast, blight, brown planthopper, and stem borer early. Get targeted pesticide recommendations instantly.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">💧</div>
+          <h3>Water Management</h3>
+          <p>Precise daily irrigation scheduling — know exactly how much water your paddy field needs at each growth stage.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📅</div>
+          <h3>Paddy Growth Calendar</h3>
+          <p>Month-by-month sowing, transplanting, and tillering timeline tailored to your region and paddy type.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🌾</div>
+          <h3>Harvest Prediction</h3>
+          <p>AI predicts your optimal harvest window for maximum grain weight and minimum post-harvest loss.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">💊</div>
+          <h3>Damage & Recovery Plans</h3>
+          <p>If your crop is damaged, receive a full treatment plan with medicines, fungicides, and recovery techniques.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="section-inner">
+      <div class="section-header" style="color:white">
+        <div class="sec-tag" style="background:rgba(201,168,76,.15);border-color:rgba(201,168,76,.3);color:var(--gold-light)">How It Works</div>
+        <h2 class="sec-title" style="color:var(--gold-light)">Four Simple Steps</h2>
+        <p class="sec-sub" style="color:rgba(255,255,255,.5)">From photo to full agronomic report in under 30 seconds.</p>
+      </div>
+      <div class="steps-row">
+        <div class="step-item">
+          <div class="step-circle">📸</div>
+          <h4>Upload Image</h4>
+          <p>Take a clear photo of your paddy plant or field</p>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">🤖</div>
+          <h4>AI Analysis</h4>
+          <p>Claude Vision AI scans and identifies crop details</p>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">📋</div>
+          <h4>Get Report</h4>
+          <p>Receive soil, water, pesticide & harvest guidance</p>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">🌾</div>
+          <h4>Grow Better</h4>
+          <p>Apply recommendations and maximise your yield</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section class="cta-band">
+    <h2>Ready to Transform Your Paddy Farm?</h2>
+    <p>Join 50,000+ farmers making data-driven decisions every season.</p>
+    <button class="btn-hero-primary" style="font-size:1.05rem;padding:1rem 2.5rem" onclick="showPage('analysis')">
+      🔬 Start Free Analysis →
+    </button>
+  </section>
+
+  <footer>
+    <div class="f-logo">🌾 PaddyAI</div>
+    <div class="f-tagline">Empowering Farmers with AI-Driven Crop Intelligence</div>
+    <div class="f-links">
+      <button onclick="showPage('home')">Home</button>
+      <button onclick="showPage('analysis')">Analysis</button>
+      <button onclick="showPage('model')">Diagnose</button>
+      <button onclick="showPage('crops')">Crop Types</button>
+      <button onclick="showPage('guidance')">Guidance</button>
+      <button onclick="showPage('about')">About</button>
+    </div>
+    <hr/>
+    <p>© 2025 PaddyAI. Built for farmers, powered by Claude AI.</p>
+  </footer>
+</div>
+
+<!-- ════════════════════════════════
+     ANALYSIS PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-analysis">
+  <div class="page-banner">
+    <h1>🔬 Paddy Crop Analysis</h1>
+    <p>Upload a paddy or crop image for instant AI-powered agronomic recommendations</p>
+  </div>
+
+  <div class="analysis-wrap">
+
+    <div class="upload-card">
+      <h3>📤 Upload Crop Image</h3>
+
+      <!-- Drop zone -->
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <span class="drop-emoji">🌾</span>
+        <h4>Drop your paddy image here</h4>
+        <p>Supports JPG, PNG, WEBP — take a clear close-up for best results</p>
+        <button class="btn-upload" onclick="event.stopPropagation()">Choose Image</button>
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)"/>
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-area" style="display:none">
+        <img id="preview-img" class="preview-img" src="" alt="Uploaded paddy crop"/>
+        <div class="img-action-row">
+          <button class="btn-analyze" id="analyze-btn" onclick="analyzeImage()">🔬 Analyse Now</button>
+          <button class="btn-clear" onclick="clearImage()">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-box" id="progress-box" style="display:none">
+      <div class="spinner"></div>
+      <div class="progress-label" id="progress-label">Initialising analysis…</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-area" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CROP TYPES PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-crops">
+  <div class="page-banner">
+    <h1>🌿 Crop Types & Classification</h1>
+    <p>Explore all major crop categories and their cultivation requirements</p>
+  </div>
+  <div class="crops-wrap" id="crops-container"></div>
+</div>
+
+<!-- ════════════════════════════════
+     GUIDANCE PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-guidance">
+  <div class="page-banner">
+    <h1>📚 Cultivation Guidance</h1>
+    <p>Expert agronomic advice for paddy and major crop cultivation</p>
+  </div>
+  <div class="guidance-wrap" id="guidance-container"></div>
+</div>
+
+<!-- ════════════════════════════════
+     SUMMARY PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-summary">
+  <div class="page-banner">
+    <h1>📊 Analysis Summary</h1>
+    <p>Your uploaded crop history and AI recommendations at a glance</p>
+  </div>
+  <div class="summary-wrap">
+    <div class="summary-stats-grid">
+      <div class="sum-stat-card">
+        <div class="sum-icon green">🔬</div>
+        <div>
+          <div class="sum-title">Total Analyses</div>
+          <div class="sum-val" id="stat-total">0</div>
+          <div class="sum-sub">Images processed</div>
+        </div>
+      </div>
+      <div class="sum-stat-card">
+        <div class="sum-icon green">✅</div>
+        <div>
+          <div class="sum-title">Healthy Crops</div>
+          <div class="sum-val" id="stat-healthy">0</div>
+          <div class="sum-sub">No treatment needed</div>
+        </div>
+      </div>
+      <div class="sum-stat-card">
+        <div class="sum-icon red">⚠️</div>
+        <div>
+          <div class="sum-title">Damaged Crops</div>
+          <div class="sum-val" id="stat-damaged">0</div>
+          <div class="sum-sub">Treatment recommended</div>
+        </div>
+      </div>
+      <div class="sum-stat-card">
+        <div class="sum-icon gold">🌾</div>
+        <div>
+          <div class="sum-title">Avg Yield Est.</div>
+          <div class="sum-val" id="stat-yield">—</div>
+          <div class="sum-sub">Tonnes per hectare</div>
+        </div>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-header"><h3>🗂️ Analysis History</h3></div>
+      <div style="overflow-x:auto">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Crop Type</th>
+              <th>Status</th>
+              <th>Soil Type</th>
+              <th>Water/Day</th>
+              <th>Harvest Month</th>
+              <th>Est. Yield</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="7"><div class="empty-history"><span>🌱</span>No analyses yet. Upload a paddy image to get started!</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     ABOUT PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-about">
+  <div class="page-banner">
+    <h1>About PaddyAI</h1>
+    <p>Our mission, technology stack, and the team behind the platform</p>
+  </div>
+  <div class="about-wrap">
+    <div class="about-card">
+      <h3>🌾 Our Mission</h3>
+      <p>PaddyAI was built to bridge the gap between modern artificial intelligence and traditional paddy farming. Millions of smallholder farmers in India and Southeast Asia face losses each season due to undetected crop diseases, poor soil management, and inefficient water usage.</p>
+      <p>We harness state-of-the-art computer vision AI to give every farmer — whether they own 1 acre or 100 acres — access to the same expert agronomic advice that large agribusinesses receive. Instantly. For free.</p>
+    </div>
+    <div class="about-card">
+      <h3>🧠 Technology Stack</h3>
+      <div class="tech-grid">
+        <div class="tech-item"><div class="ti-icon">🤖</div><div class="ti-name">Claude Vision AI</div><div class="ti-desc">Anthropic's Claude for image analysis & recommendations</div></div>
+        <div class="tech-item"><div class="ti-icon">🌐</div><div class="ti-name">HTML5 / CSS3 / JS</div><div class="ti-desc">Pure frontend — no framework, no build tools</div></div>
+        <div class="tech-item"><div class="ti-icon">📡</div><div class="ti-name">Anthropic API</div><div class="ti-desc">Real-time AI inference via /v1/messages endpoint</div></div>
+        <div class="tech-item"><div class="ti-icon">📊</div><div class="ti-name">Agronomic Models</div><div class="ti-desc">ICAR & IRRI research datasets for crop calibration</div></div>
+      </div>
+    </div>
+    <div class="about-card">
+      <h3>👥 The Team</h3>
+      <div class="team-grid">
+        <div class="team-card"><div class="team-avatar">👨‍🔬</div><div class="team-name">Dr. Arjun Reddy</div><div class="team-role">Lead Agronomist & AI Advisor</div></div>
+        <div class="team-card"><div class="team-avatar">👩‍💻</div><div class="team-name">Priya Shankar</div><div class="team-role">Full Stack Developer</div></div>
+        <div class="team-card"><div class="team-avatar">👨‍💻</div><div class="team-name">Mohan Kumar</div><div class="team-role">Computer Vision Engineer</div></div>
+        <div class="team-card"><div class="team-avatar">👩‍🔬</div><div class="team-name">Lakshmi Devi</div><div class="team-role">Agricultural Data Scientist</div></div>
+      </div>
+    </div>
+    <div class="about-card">
+      <h3>📜 Partnerships & Recognitions</h3>
+      <div class="tech-grid">
+        <div class="tech-item"><div class="ti-icon">🏛️</div><div class="ti-name">ICAR</div><div class="ti-desc">Indian Council of Agricultural Research</div></div>
+        <div class="tech-item"><div class="ti-icon">🌾</div><div class="ti-name">IRRI</div><div class="ti-desc">International Rice Research Institute</div></div>
+        <div class="tech-item"><div class="ti-icon">🏦</div><div class="ti-name">NABARD</div><div class="ti-desc">Agriculture financing partner</div></div>
+        <div class="tech-item"><div class="ti-icon">🇮🇳</div><div class="ti-name">MoA&FW</div><div class="ti-desc">Ministry of Agriculture, Government of India</div></div>
+      </div>
+    </div>
+    <div class="about-banner">
+      <h3>🌱 Supporting Sustainable Paddy Farming Since 2023</h3>
+      <p>AI-powered recommendations based on 70+ years of ICAR and IRRI research data</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     MODEL PAGE
+════════════════════════════════ -->
+<div class="page" id="pg-model">
+  <div class="page-banner">
+    <h1>🩺 Diagnose</h1>
+    <p>Upload your paddy image — AI detects disease, suggests medicine & predicts yield</p>
+  </div>
+
+  <div class="model-wrap">
+
+    <!-- Intro banner -->
+    <div class="model-intro-banner">
+      <div class="model-intro-icon">🧠</div>
+      <div class="model-intro-text">
+        <h2>Disease Diagnosis + Yield Prediction</h2>
+        <p>Simply upload your paddy plant or field image. Our Diagnose model automatically detects diseases, suggests the right medicine & pesticide, and predicts your expected yield — all from one image.</p>
+      </div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="model-steps-bar" id="model-steps">
+      <div class="mstep active" id="ms1"><div class="mstep-num">1</div><div class="mstep-label">Upload Image</div></div>
+      <div class="mstep-arrow">→</div>
+      <div class="mstep" id="ms2"><div class="mstep-num">2</div><div class="mstep-label">AI Analysis</div></div>
+      <div class="mstep-arrow">→</div>
+      <div class="mstep" id="ms3"><div class="mstep-num">3</div><div class="mstep-label">Disease Detection</div></div>
+      <div class="mstep-arrow">→</div>
+      <div class="mstep" id="ms4"><div class="mstep-num">4</div><div class="mstep-label">Yield Prediction</div></div>
+      <div class="mstep-arrow">→</div>
+      <div class="mstep" id="ms5"><div class="mstep-num">5</div><div class="mstep-label">Full Report</div></div>
+    </div>
+
+    <!-- Upload card -->
+    <div class="model-card">
+      <div class="model-card-title"><span class="mct-icon">📸</span> Upload Paddy / Crop Image</div>
+
+      <div class="model-upload-zone" id="model-drop-zone"
+           onclick="document.getElementById('model-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="modelHandleDrop(event)">
+        <span class="model-upload-emoji">🌾</span>
+        <h4 style="color:var(--green-deep);margin-bottom:.3rem">Drop your paddy image here</h4>
+        <p style="color:var(--text-light);font-size:.84rem;margin-bottom:1rem">JPG, PNG, WEBP — clear close-up gives best accuracy</p>
+        <button class="btn-upload" onclick="event.stopPropagation()">Choose Image</button>
+        <input type="file" id="model-file-input" accept="image/*" style="display:none" onchange="modelHandleFile(event)"/>
+      </div>
+
+      <img id="model-preview" class="model-preview-img" src="" alt="Crop preview"/>
+
+      <div id="model-img-actions" style="display:none;gap:.8rem;flex-wrap:wrap;margin-top:.5rem">
+        <button class="btn-run" id="model-run-btn" onclick="runModel()">
+          🩺 Run Diagnose — Disease Detection + Yield Prediction
+        </button>
+        <button class="btn-model-new" onclick="clearModelImage()" style="margin-top:0">✕ Clear Image</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="model-progress-box" id="model-progress-box">
+      <div class="model-spinner"></div>
+      <div class="model-progress-label" id="model-progress-label">Initialising model…</div>
+      <div class="model-progress-bar-wrap">
+        <div class="model-progress-bar" id="model-progress-bar" style="width:0%"></div>
+      </div>
+      <p style="font-size:.82rem;color:var(--text-light);margin-top:.4rem" id="model-progress-pct">0%</p>
+    </div>
+
+    <!-- Results -->
+    <div class="model-results" id="model-results"></div>
+
+  </div>
+</div>
+
+
+  <!-- JS -->
+  <script src="js/auth.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/crop-data.js"></script>
+  <script src="js/diagnose.js"></script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+/* ══════════════════════════════════
+   HOME PAGE
+══════════════════════════════════ */
+#pg-home{background:var(--cream)}
+
+/* HERO */
+.home-hero{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 20% 40%,rgba(90,173,90,.15) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 60%,rgba(201,168,76,.1) 0%,transparent 50%),
+    linear-gradient(170deg,#030e03 0%,#0b2e0b 30%,#163c16 55%,#2b5e2b 85%,#3d7a3d 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:90px 2rem 4rem;position:relative;overflow:hidden;
+}
+/* Rice field silhouette SVG background */
+.hero-silhouette{
+  position:absolute;bottom:0;left:0;right:0;
+  height:180px;opacity:.18;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 180'%3E%3Cpath fill='%235aad5a' d='M0 180 Q100 80 200 120 Q300 60 400 100 Q500 40 600 90 Q700 30 800 80 Q900 20 1000 70 Q1100 10 1200 60 L1200 180Z'/%3E%3C/svg%3E");
+  background-size:cover;background-position:bottom;
+}
+.hero-floating-grains{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
+.grain{
+  position:absolute;font-size:1.4rem;opacity:.12;
+  animation:floatGrain linear infinite;
+}
+@keyframes floatGrain{
+  0%{transform:translateY(100vh) rotate(0deg);opacity:0}
+  10%{opacity:.12}
+  90%{opacity:.12}
+  100%{transform:translateY(-80px) rotate(360deg);opacity:0}
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.55rem;
+  background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.32);
+  color:var(--gold-light);font-size:.76rem;font-weight:700;
+  padding:.42rem 1.2rem;border-radius:100px;margin-bottom:2rem;
+  letter-spacing:.12em;text-transform:uppercase;
+  animation:fadeUp .7s .1s both;
+}
+.hero-badge-dot{width:7px;height:7px;background:var(--gold);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.6)}}
+.home-hero h1{
+  font-size:clamp(3.2rem,8vw,6.5rem);font-weight:900;line-height:1.0;
+  color:var(--white);margin-bottom:1.4rem;
+  animation:fadeUp .7s .2s both;
+}
+.home-hero h1 .accent{
+  display:block;color:transparent;
+  background:linear-gradient(90deg,var(--gold-light) 0%,#a8e063 50%,var(--gold-light) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  background-size:200%;animation:goldShimmer 4s linear infinite;
+}
+@keyframes goldShimmer{0%{background-position:0%}100%{background-position:200%}}
+.home-hero .hero-sub{
+  font-size:1.1rem;color:rgba(255,255,255,.62);max-width:560px;
+  line-height:1.78;margin-bottom:2.8rem;font-weight:300;
+  animation:fadeUp .7s .3s both;
+}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;animation:fadeUp .7s .4s both}
+.btn-hero-primary{
+  background:linear-gradient(135deg,#5aad5a,#2b5e2b);border:none;color:white;
+  font-size:1rem;font-weight:700;padding:.92rem 2.3rem;border-radius:12px;
+  transition:all .25s;box-shadow:0 4px 22px rgba(90,173,90,.4);
+}
+.btn-hero-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(90,173,90,.55)}
+.btn-hero-outline{
+  background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);
+  color:white;font-size:1rem;font-weight:600;padding:.92rem 2.3rem;border-radius:12px;transition:all .25s;
+}
+.btn-hero-outline:hover{background:rgba(255,255,255,.14)}
+
+.hero-stats{
+  display:flex;justify-content:center;gap:3rem;margin-top:4rem;
+  flex-wrap:wrap;animation:fadeUp .7s .5s both;
+}
+.hstat{text-align:center}
+.hstat-num{
+  font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:900;
+  color:var(--gold-light);line-height:1;
+}
+.hstat-label{font-size:.72rem;color:rgba(255,255,255,.45);margin-top:.3rem;letter-spacing:.1em;text-transform:uppercase}
+
+/* FEATURES SECTION */
+.section{padding:5rem 2rem}
+.section-inner{max-width:1100px;margin:0 auto}
+.sec-tag{
+  display:inline-block;background:rgba(90,173,90,.1);border:1px solid rgba(90,173,90,.22);
+  color:var(--green-mid);font-size:.74rem;font-weight:700;
+  padding:.3rem .9rem;border-radius:100px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.9rem;
+}
+.sec-title{font-size:clamp(1.8rem,3.5vw,2.8rem);color:var(--green-deep);margin-bottom:.7rem}
+.sec-sub{color:var(--text-light);font-size:1rem;max-width:500px;line-height:1.7}
+.section-header{text-align:center;margin-bottom:3.5rem}
+.section-header .sec-sub{margin:0 auto}
+
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1.4rem;
+}
+.feat-card{
+  background:var(--white);border-radius:var(--r);padding:2rem;
+  border:1px solid rgba(90,173,90,.1);box-shadow:var(--shadow);
+  transition:all .3s;
+}
+.feat-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+.feat-icon{
+  width:54px;height:54px;border-radius:14px;margin-bottom:1.2rem;
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+  background:linear-gradient(135deg,var(--green-pale),rgba(90,173,90,.15));
+}
+.feat-card h3{font-size:1.1rem;color:var(--green-deep);margin-bottom:.55rem}
+.feat-card p{font-size:.88rem;color:var(--text-light);line-height:1.65}
+
+/* HOW IT WORKS */
+.how-section{background:linear-gradient(135deg,var(--green-dark),var(--green-deep));padding:5rem 2rem}
+.steps-row{display:flex;gap:0;justify-content:center;flex-wrap:wrap;max-width:980px;margin:0 auto;position:relative}
+.steps-row::before{
+  content:'';position:absolute;top:32px;left:10%;right:10%;height:2px;
+  background:rgba(201,168,76,.2);z-index:0;
+}
+.step-item{flex:1;min-width:160px;max-width:220px;text-align:center;padding:1rem;position:relative;z-index:1}
+.step-circle{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),#9a6f0a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;margin:0 auto 1rem;
+  box-shadow:0 4px 16px rgba(201,168,76,.35);
+}
+.step-item h4{color:var(--gold-light);font-size:1rem;margin-bottom:.4rem}
+.step-item p{color:rgba(255,255,255,.5);font-size:.82rem;line-height:1.6}
+
+/* CTA BAND */
+.cta-band{
+  background:linear-gradient(100deg,#163c16,#2b5e2b);
+  padding:4rem 2rem;text-align:center;
+}
+.cta-band h2{font-size:clamp(1.8rem,4vw,3rem);color:var(--gold-light);margin-bottom:.8rem}
+.cta-band p{color:rgba(255,255,255,.6);font-size:1rem;margin-bottom:2rem}
