@@ -8,265 +8,255 @@ from PIL import Image
 import io
 import os
 import gdown
+import tensorflow as tf
 
 app = Flask(__name__)
 
-# ── CORS: Allow your GitHub Pages frontend ──
+# ============================================================
+# CORS
+# ============================================================
 CORS(app, origins=[
     "https://smitha242005.github.io",
     "http://localhost:5500",
     "http://127.0.0.1:5500"
 ])
 
-# ── Auto Download disease_model.h5 from Google Drive ──
-DISEASE_MODEL_PATH = 'disease_model.h5'
-GDRIVE_FILE_ID = '1XCBxp3hF69sTMS0pr2efn5PyfBkutZpe'
+# ============================================================
+# Disease Weights Download
+# ============================================================
+WEIGHTS_FILE = "disease_weights.weights.h5"
+GDRIVE_FILE_ID = "1Gy9rg6uAYgTmT6CCK2qkiunE3BxZuaOp"
 
-if not os.path.exists(DISEASE_MODEL_PATH):
-    print("⬇️  Downloading disease_model.h5 from Google Drive...")
+if not os.path.exists(WEIGHTS_FILE):
+    print("⬇️ Downloading disease weights...")
+
     try:
         gdown.download(
             id=GDRIVE_FILE_ID,
-            output=DISEASE_MODEL_PATH,
-            quiet=False
+            output=WEIGHTS_FILE,
+            quiet=False,
+            fuzzy=True
         )
-        print("✅ disease_model.h5 downloaded successfully!")
+
+        if os.path.exists(WEIGHTS_FILE):
+            size_mb = os.path.getsize(WEIGHTS_FILE) / (1024 * 1024)
+            print(f"📁 Downloaded weights: {size_mb:.2f} MB")
+
+            if size_mb < 1:
+                raise Exception("Downloaded file too small")
+
     except Exception as e:
-        print(f"❌ Failed to download disease model: {e}")
+        print(f"❌ Failed to download weights: {e}")
 
-# ── Load Disease Model (Keras .h5) ──
+# ============================================================
+# Build Disease Model Manually
+# ============================================================
 disease_model = None
-try:
-    import tensorflow as tf
-    disease_model = tf.keras.models.load_model(DISEASE_MODEL_PATH)
-    print("✅ Disease model loaded!")
-except Exception as e:
-    print(f"⚠️  Disease model not loaded: {e}")
 
-# ── Load Yield Model ──
-print("Loading yield & encoder models...")
-with open('yield_model.pkl', 'rb') as f:
+try:
+    disease_model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(128, 128, 3)),
+
+        tf.keras.layers.Conv2D(32, (3, 3), activation="relu"),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+
+        tf.keras.layers.Conv2D(64, (3, 3), activation="relu"),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+
+        tf.keras.layers.Conv2D(128, (3, 3), activation="relu"),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+
+        tf.keras.layers.Flatten(),
+
+        tf.keras.layers.Dense(256, activation="relu"),
+        tf.keras.layers.Dropout(0.5),
+
+        tf.keras.layers.Dense(3, activation="softmax")
+    ])
+
+    disease_model.build((None, 128, 128, 3))
+
+    if os.path.exists(WEIGHTS_FILE):
+        disease_model.load_weights(WEIGHTS_FILE)
+        print("✅ Disease model weights loaded successfully!")
+    else:
+        print("❌ Weights file not found")
+        disease_model = None
+
+except Exception as e:
+    print(f"❌ Failed to build/load disease model: {e}")
+    disease_model = None
+
+# ============================================================
+# Load Yield Prediction Files
+# ============================================================
+print("⬇️ Loading yield model files...")
+
+with open("yield_model.pkl", "rb") as f:
     yield_model = pickle.load(f)
-with open('label_encoder.pkl', 'rb') as f:
+
+with open("label_encoder.pkl", "rb") as f:
     label_encoder = pickle.load(f)
-with open('yield_model_info.json') as f:
+
+with open("yield_model_info.json", "r") as f:
     yield_info = json.load(f)
-with open('class_indices.json') as f:
+
+with open("class_indices.json", "r") as f:
     class_indices = json.load(f)
 
-# Reverse: {0: 'Bacterial leaf blight', 1: 'Brown spot', 2: 'Leaf smut'}
 idx_to_class = {v: k for k, v in class_indices.items()}
-print("✅ All models loaded!")
 
-# ── Disease Treatment Database ──
+print("✅ Yield model loaded!")
+
+# ============================================================
+# Disease Information
+# ============================================================
 DISEASE_INFO = {
-    'Bacterial leaf blight': {
-        'medicine':  'Streptomycin sulfate + Tetracycline (0.025%)',
-        'pesticide': 'Copper oxychloride 50 WP @ 3g/L',
-        'recovery':  'Drain field, apply potash fertilizer, avoid excess nitrogen',
-        'severity':  'High',
-        'color':     '#f44336'
+    "Bacterial leaf blight": {
+        "medicine": "Streptomycin sulfate + Tetracycline (0.025%)",
+        "pesticide": "Copper oxychloride 50 WP @ 3g/L",
+        "recovery": "Drain field, apply potash fertilizer, avoid excess nitrogen",
+        "severity": "High",
+        "color": "#f44336"
     },
-    'Brown spot': {
-        'medicine':  'Mancozeb 75 WP @ 2.5g/L or Iprodione',
-        'pesticide': 'Propiconazole 25 EC @ 1ml/L',
-        'recovery':  'Improve soil nutrition, apply potassium silicate',
-        'severity':  'Medium',
-        'color':     '#ff9800'
+    "Brown spot": {
+        "medicine": "Mancozeb 75 WP @ 2.5g/L or Iprodione",
+        "pesticide": "Propiconazole 25 EC @ 1ml/L",
+        "recovery": "Improve soil nutrition, apply potassium silicate",
+        "severity": "Medium",
+        "color": "#ff9800"
     },
-    'Leaf smut': {
-        'medicine':  'Carbendazim 50 WP @ 1g/L',
-        'pesticide': 'Tricyclazole 75 WP @ 0.6g/L',
-        'recovery':  'Remove infected leaves, improve drainage',
-        'severity':  'Low',
-        'color':     '#9c27b0'
+    "Leaf smut": {
+        "medicine": "Carbendazim 50 WP @ 1g/L",
+        "pesticide": "Tricyclazole 75 WP @ 0.6g/L",
+        "recovery": "Remove infected leaves, improve drainage",
+        "severity": "Low",
+        "color": "#9c27b0"
     }
 }
 
-# ── Helper Functions ──
-def get_yield_category(yield_val):
-    if yield_val >= 50000:   return 'High'
-    elif yield_val >= 30000: return 'Medium'
-    else:                    return 'Low'
+# ============================================================
+# Helper Functions
+# ============================================================
+def preprocess_image(image_data):
+    if "," in image_data:
+        image_data = image_data.split(",")[1]
 
-def preprocess_image(image_data_base64):
-    """Decode base64 image and preprocess for Keras model."""
-    if ',' in image_data_base64:
-        image_data_base64 = image_data_base64.split(',')[1]
-    image_bytes = base64.b64decode(image_data_base64)
-    image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-    image = image.resize((224, 224))
-    img_array = np.array(image) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # (1, 224, 224, 3)
-    return img_array
+    image_bytes = base64.b64decode(image_data)
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    image = image.resize((128, 128))
 
-# ── Routes ──
+    image_array = np.array(image, dtype=np.float32) / 255.0
+    image_array = np.expand_dims(image_array, axis=0)
 
-@app.route('/', methods=['GET'])
+    return image_array
+
+
+def get_yield_category(value):
+    if value >= 50000:
+        return "High"
+    elif value >= 30000:
+        return "Medium"
+    return "Low"
+
+# ============================================================
+# Routes
+# ============================================================
+@app.route("/")
 def home():
     return jsonify({
-        'status': '✅ PaddyAI Backend Running',
-        'disease_model': 'loaded' if disease_model else 'not loaded',
-        'yield_model': 'loaded',
-        'accuracy': {
-            'disease': '81.25%',
-            'yield': f"{round(yield_info['r2_score'] * 100, 2)}%"
-        },
-        'endpoints': ['/health', '/predict/disease', '/predict/yield']
+        "status": "running",
+        "disease_model_loaded": disease_model is not None,
+        "yield_model_loaded": True
     })
 
-@app.route('/health', methods=['GET'])
+
+@app.route("/health")
 def health():
     return jsonify({
-        'status': 'ok',
-        'disease_model_loaded': disease_model is not None,
-        'yield_model_loaded': True
+        "status": "ok",
+        "disease_model_loaded": disease_model is not None,
+        "yield_model_loaded": True
     })
 
-@app.route('/predict/disease', methods=['POST'])
+
+@app.route("/predict/disease", methods=["POST"])
 def predict_disease():
     try:
         data = request.get_json()
-        if not data or 'image' not in data:
-            return jsonify({'error': 'No image provided'}), 400
 
-        # ── Real Disease Prediction ──
-        primary_disease = 'Healthy'
-        primary_confidence = 99.0
-        disease_classes_result = []
+        if not data or "image" not in data:
+            return jsonify({"error": "No image provided"}), 400
 
-        if disease_model:
-            img_array = preprocess_image(data['image'])
-            predictions = disease_model.predict(img_array)[0]  # shape: (3,)
+        if disease_model is None:
+            return jsonify({"error": "Disease model not loaded"}), 500
 
-            top_idx = int(np.argmax(predictions))
-            primary_disease = idx_to_class.get(top_idx, 'Unknown')
-            primary_confidence = round(float(predictions[top_idx]) * 100, 2)
+        image_array = preprocess_image(data["image"])
+        predictions = disease_model.predict(image_array, verbose=0)[0]
 
-            disease_classes_result = [
-                {
-                    'name':       idx_to_class.get(i, f'Class {i}'),
-                    'confidence': round(float(predictions[i]) * 100, 2),
-                    'color':      DISEASE_INFO.get(idx_to_class.get(i, ''), {}).get('color', '#607d8b')
-                }
-                for i in range(len(predictions))
-            ]
-        else:
-            disease_classes_result = [
-                {'name': 'Bacterial leaf blight', 'confidence': 15.0, 'color': '#f44336'},
-                {'name': 'Brown spot',            'confidence': 8.0,  'color': '#ff9800'},
-                {'name': 'Leaf smut',             'confidence': 5.0,  'color': '#9c27b0'},
-            ]
+        top_index = int(np.argmax(predictions))
+        disease_name = idx_to_class[top_index]
+        confidence = round(float(predictions[top_index]) * 100, 2)
 
-        # ── Yield Prediction ──
-        country    = data.get('country', 'India')
-        year       = int(data.get('year', 2024))
-        rainfall   = float(data.get('rainfall', 1200.0))
-        pesticides = float(data.get('pesticides', 121.0))
-        avg_temp   = float(data.get('avg_temp', 28.0))
+        prediction_details = []
 
-        try:
-            area_encoded = label_encoder.transform([country])[0]
-        except:
-            area_encoded = label_encoder.transform(['India'])[0]
+        for i, value in enumerate(predictions):
+            class_name = idx_to_class[i]
 
-        yield_features  = np.array([[area_encoded, year, rainfall, pesticides, avg_temp]])
-        predicted_yield = float(yield_model.predict(yield_features)[0])
-        yield_category  = get_yield_category(predicted_yield)
-        yield_tonnes    = round(predicted_yield / 10000, 2)
+            prediction_details.append({
+                "name": class_name,
+                "confidence": round(float(value) * 100, 2),
+                "color": DISEASE_INFO.get(class_name, {}).get("color", "#607d8b")
+            })
 
-        # ── Health Score ──
-        is_diseased  = primary_disease != 'Healthy'
-        health_score = max(40, 95 - int(primary_confidence * 0.4)) if is_diseased else 85
-
-        # ── Treatment Info ──
-        treatment     = DISEASE_INFO.get(primary_disease, {})
-        medicine      = treatment.get('medicine',  'No treatment needed — crop is healthy!')
-        pesticide_rec = treatment.get('pesticide', 'Standard crop care')
-        recovery      = treatment.get('recovery',  'Maintain good field hygiene')
-
-        # ── Recommendations ──
-        recommendations = []
-        if is_diseased:
-            recommendations += [
-                {'type': 'danger',  'icon': '🦠', 'text': f'Disease detected: {primary_disease} ({primary_confidence}% confidence)'},
-                {'type': 'warning', 'icon': '💊', 'text': f'Medicine: {medicine}'},
-                {'type': 'warning', 'icon': '🧪', 'text': f'Pesticide: {pesticide_rec}'},
-                {'type': 'info',    'icon': '🌿', 'text': f'Recovery: {recovery}'},
-            ]
-        else:
-            recommendations.append(
-                {'type': 'success', 'icon': '✅', 'text': 'Crop looks healthy! Continue current care.'}
-            )
-
-        recommendations += [
-            {'type': 'info',    'icon': '💧', 'text': 'Maintain 3–5 cm standing water during tillering.'},
-            {'type': 'success', 'icon': '🌾', 'text': f'Expected yield: {yield_tonnes} t/ha — {yield_category} performance.'},
-            {'type': 'info',    'icon': '🧪', 'text': 'Apply NPK 120:60:60 kg/ha for optimal growth.'},
-        ]
+        treatment = DISEASE_INFO.get(disease_name, {})
 
         return jsonify({
-            'cropVariety':        'Paddy — Oryza sativa',
-            'overallHealthScore': health_score,
-            'overallVerdict':     'Diseased' if is_diseased else 'Healthy',
-            'verdictSummary':     f'Yield model accuracy: {round(yield_info["r2_score"] * 100, 2)}%',
-            'diseaseDetection': {
-                'primaryDisease': primary_disease,
-                'confidence':     primary_confidence,
-                'medicine':       medicine,
-                'pesticide':      pesticide_rec,
-                'recovery':       recovery,
-                'classes':        disease_classes_result
-            },
-            'yieldPrediction': {
-                'predictedYield':   f'{yield_tonnes} t/ha',
-                'yieldConfidence':  round(yield_info['r2_score'] * 100, 2),
-                'yieldCategory':    yield_category,
-                'soilType':         'Clayey loam',
-                'waterRequirement': '5–6 L/day',
-                'season':           'Kharif (Jun–Nov)',
-                'harvestMonth':     'October–November',
-                'fertilizer':       'NPK 120:60:60 kg/ha',
-                'growthStage':      'Tillering'
-            },
-            'recommendations': recommendations
+            "disease": disease_name,
+            "confidence": confidence,
+            "medicine": treatment.get("medicine", ""),
+            "pesticide": treatment.get("pesticide", ""),
+            "recovery": treatment.get("recovery", ""),
+            "severity": treatment.get("severity", ""),
+            "predictions": prediction_details
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@app.route('/predict/yield', methods=['POST'])
+@app.route("/predict/yield", methods=["POST"])
 def predict_yield():
     try:
-        data       = request.get_json()
-        country    = data.get('country', 'India')
-        year       = int(data.get('year', 2024))
-        rainfall   = float(data.get('rainfall', 1200.0))
-        pesticides = float(data.get('pesticides', 121.0))
-        avg_temp   = float(data.get('avg_temp', 28.0))
+        data = request.get_json()
+
+        country = data.get("country", "India")
+        year = int(data.get("year", 2024))
+        rainfall = float(data.get("rainfall", 1200))
+        pesticides = float(data.get("pesticides", 121))
+        avg_temp = float(data.get("avg_temp", 28))
 
         try:
             area_encoded = label_encoder.transform([country])[0]
-        except:
-            area_encoded = label_encoder.transform(['India'])[0]
+        except Exception:
+            area_encoded = label_encoder.transform(["India"])[0]
 
-        features     = np.array([[area_encoded, year, rainfall, pesticides, avg_temp]])
-        predicted    = float(yield_model.predict(features)[0])
-        yield_tonnes = round(predicted / 10000, 2)
-        category     = get_yield_category(predicted)
+        features = np.array([
+            [area_encoded, year, rainfall, pesticides, avg_temp]
+        ])
+
+        predicted_yield = float(yield_model.predict(features)[0])
 
         return jsonify({
-            'country':        country,
-            'predictedYield': f'{yield_tonnes} t/ha',
-            'yieldCategory':  category,
-            'r2_score':       yield_info['r2_score']
+            "predictedYield": round(predicted_yield / 10000, 2),
+            "yieldCategory": get_yield_category(predicted_yield),
+            "confidence": round(yield_info["r2_score"] * 100, 2)
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
