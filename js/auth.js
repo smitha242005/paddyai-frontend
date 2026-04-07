@@ -1,6 +1,5 @@
 /* ── GLOBAL API URL ── */
 const PADDYAI_API = 'https://paddyai-backend.onrender.com';
-const CORS_PROXY = '';   // ← FIXED: backend has CORS enabled, no proxy needed
 
 /* ── STATE ── */
 let currentUser = null;
@@ -16,7 +15,6 @@ function switchLandingTab(tab) {
   document.getElementById('lform-login').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('lform-signup').style.display = tab === 'signup' ? 'block' : 'none';
 }
-
 function doLandingAuth(mode) {
   let email, name;
   if (mode === 'login') {
@@ -36,7 +34,6 @@ function doLandingAuth(mode) {
   ls.style.opacity = '0';
   setTimeout(() => { ls.style.display = 'none'; }, 400);
 }
-
 function shakeInput(id) {
   const el = document.getElementById(id);
   el.style.borderColor = '#ef4444';
@@ -44,8 +41,6 @@ function shakeInput(id) {
   el.focus();
   setTimeout(() => { el.style.borderColor = ''; el.style.animation = ''; }, 1000);
 }
-
-/* ── LOGOUT ── */
 function logout() {
   currentUser = null;
   closeMobileNav();
@@ -62,9 +57,7 @@ function logout() {
     ls.style.opacity = '1';
   });
 }
-
-/* ── LEGACY ── */
 function openAuth(mode){}
-function closeAuth(e){ document.getElementById('auth-modal').classList.remove('open'); }
+function closeAuth(e){}
 function toggleAuthMode(){}
 function doAuth(){}
