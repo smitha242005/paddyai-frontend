@@ -12,8 +12,15 @@ import tensorflow as tf
 
 app = Flask(__name__)
 
-# Allow frontend access from GitHub Pages and local testing
-CORS(app, resources={r"/*": {"origins": "*"}})
+# ── CORS Fix ──
+CORS(app)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # ============================================================
 # Disease Model Weights Download
@@ -24,24 +31,18 @@ GDRIVE_FILE_ID = "1Gy9rg6uAYgTmT6CCK2qkiunE3BxZuaOp"
 
 if not os.path.exists(WEIGHTS_FILE):
     print("Downloading disease model weights...")
-
     try:
         gdown.download(
-            id=GDRIVE_FILE_ID,
+            f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}&confirm=t",
             output=WEIGHTS_FILE,
-            quiet=False,
-            fuzzy=True
+            quiet=False
         )
-
         if not os.path.exists(WEIGHTS_FILE):
             raise Exception("Weights file not downloaded")
-
         size_mb = os.path.getsize(WEIGHTS_FILE) / (1024 * 1024)
         print(f"Weights downloaded: {size_mb:.2f} MB")
-
         if size_mb < 1:
             raise Exception("Downloaded file too small / invalid")
-
     except Exception as e:
         print("Failed to download disease weights:", e)
 
@@ -54,54 +55,52 @@ disease_model = None
 try:
     disease_model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=(128, 128, 3)),
-
         tf.keras.layers.Conv2D(32, (3, 3), activation="relu"),
         tf.keras.layers.MaxPooling2D((2, 2)),
-
         tf.keras.layers.Conv2D(64, (3, 3), activation="relu"),
         tf.keras.layers.MaxPooling2D((2, 2)),
-
         tf.keras.layers.Conv2D(128, (3, 3), activation="relu"),
         tf.keras.layers.MaxPooling2D((2, 2)),
-
         tf.keras.layers.Flatten(),
-
         tf.keras.layers.Dense(256, activation="relu"),
         tf.keras.layers.Dropout(0.5),
-
         tf.keras.layers.Dense(3, activation="softmax")
     ])
-
     disease_model.build((None, 128, 128, 3))
 
     if os.path.exists(WEIGHTS_FILE):
         disease_model.load_weights(WEIGHTS_FILE)
-        print("Disease model loaded successfully")
+        print("✅ Disease model loaded successfully!")
+
+        # ── Warm up model so first real request is fast ──
+        print("Warming up disease model...")
+        dummy = np.zeros((1, 128, 128, 3), dtype=np.float32)
+        disease_model.predict(dummy, verbose=0)
+        print("✅ Model warmed up! First prediction will be fast.")
     else:
-        print("Disease model weights file missing")
+        print("❌ Disease model weights file missing")
         disease_model = None
 
 except Exception as e:
-    print("Failed to load disease model:", e)
+    print("❌ Failed to load disease model:", e)
     disease_model = None
 
 # ============================================================
 # Load Yield Model
 # ============================================================
 
+print("Loading yield model...")
 with open("yield_model.pkl", "rb") as f:
     yield_model = pickle.load(f)
-
 with open("label_encoder.pkl", "rb") as f:
     label_encoder = pickle.load(f)
-
 with open("yield_model_info.json", "r") as f:
     yield_info = json.load(f)
-
 with open("class_indices.json", "r") as f:
     class_indices = json.load(f)
 
 idx_to_class = {v: k for k, v in class_indices.items()}
+print("✅ Yield model loaded!")
 
 # ============================================================
 # Disease Details
@@ -128,6 +127,13 @@ DISEASE_INFO = {
         "recovery": "Remove infected leaves and improve drainage",
         "severity": "Low",
         "color": "#8b5cf6"
+    },
+    "Healthy": {
+        "medicine": "No treatment needed",
+        "pesticide": "Standard crop care",
+        "recovery": "Maintain good field hygiene",
+        "severity": "None",
+        "color": "#22c55e"
     }
 }
 
@@ -138,22 +144,16 @@ DISEASE_INFO = {
 def preprocess_image(image_data):
     if "," in image_data:
         image_data = image_data.split(",")[1]
-
     image_bytes = base64.b64decode(image_data)
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    image = image.resize((128, 128))
-
+    image = image.resize((128, 128))  # Must match training size
     arr = np.array(image, dtype=np.float32) / 255.0
     arr = np.expand_dims(arr, axis=0)
-
     return arr
 
-
 def get_yield_category(y):
-    if y >= 50000:
-        return "High"
-    elif y >= 30000:
-        return "Medium"
+    if y >= 50000:   return "High"
+    elif y >= 30000: return "Medium"
     return "Low"
 
 # ============================================================
@@ -163,11 +163,15 @@ def get_yield_category(y):
 @app.route("/")
 def root():
     return jsonify({
-        "status": "running",
+        "status": "✅ PaddyAI Backend Running",
         "disease_model_loaded": disease_model is not None,
-        "yield_model_loaded": True
+        "yield_model_loaded": True,
+        "accuracy": {
+            "disease": "81.25%",
+            "yield": f"{round(yield_info['r2_score'] * 100, 2)}%"
+        },
+        "endpoints": ["/health", "/predict/disease", "/predict/yield"]
     })
-
 
 @app.route("/health")
 def health():
@@ -177,33 +181,36 @@ def health():
         "yield_model_loaded": True
     })
 
-
 @app.route("/predict/disease", methods=["POST", "OPTIONS"])
 def predict_disease():
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
-
     try:
         data = request.get_json()
-
         if not data or "image" not in data:
             return jsonify({"error": "No image provided"}), 400
-
         if disease_model is None:
-            return jsonify({"error": "Disease model not loaded"}), 500
+            return jsonify({"error": "Disease model not loaded. Please try again later."}), 503
 
+        # ── Preprocess and predict ──
         image = preprocess_image(data["image"])
-
         preds = disease_model.predict(image, verbose=0)[0]
 
         top_index = int(np.argmax(preds))
-        disease = idx_to_class[top_index]
-        confidence = round(float(preds[top_index]) * 100, 2)
+        top_confidence = float(preds[top_index]) * 100
 
-        disease_info = DISEASE_INFO.get(disease, {})
+        # ── Confidence threshold: below 60% = treat as Healthy ──
+        if top_confidence < 60.0:
+            disease = "Healthy"
+            confidence = round(top_confidence, 2)
+        else:
+            disease = idx_to_class[top_index]
+            confidence = round(top_confidence, 2)
 
+        disease_info = DISEASE_INFO.get(disease, DISEASE_INFO["Healthy"])
+
+        # ── Build per-class prediction list ──
         prediction_list = []
-
         for i, p in enumerate(preds):
             cls = idx_to_class[i]
             prediction_list.append({
@@ -212,14 +219,81 @@ def predict_disease():
                 "color": DISEASE_INFO.get(cls, {}).get("color", "#6b7280")
             })
 
+        # ── Yield Prediction ──
+        country    = data.get("country", "India")
+        year       = int(data.get("year", 2024))
+        rainfall   = float(data.get("rainfall", 1200))
+        pesticides = float(data.get("pesticides", 121))
+        avg_temp   = float(data.get("avg_temp", 28))
+
+        try:
+            encoded_country = label_encoder.transform([country])[0]
+        except:
+            encoded_country = label_encoder.transform(["India"])[0]
+
+        features = np.array([[encoded_country, year, rainfall, pesticides, avg_temp]])
+        pred_yield = float(yield_model.predict(features)[0])
+        yield_tonnes = round(pred_yield / 10000, 2)
+        yield_category = get_yield_category(pred_yield)
+
+        # ── Health score ──
+        is_diseased = disease != "Healthy"
+        health_score = max(40, 95 - int(confidence * 0.4)) if is_diseased else 85
+
+        # ── Recommendations ──
+        recommendations = []
+        if is_diseased:
+            recommendations += [
+                {"type": "danger",  "icon": "🦠", "text": f"Disease detected: {disease} ({confidence}% confidence)"},
+                {"type": "warning", "icon": "💊", "text": f"Medicine: {disease_info.get('medicine', '')}"},
+                {"type": "warning", "icon": "🧪", "text": f"Pesticide: {disease_info.get('pesticide', '')}"},
+                {"type": "info",    "icon": "🌿", "text": f"Recovery: {disease_info.get('recovery', '')}"},
+            ]
+        else:
+            recommendations.append(
+                {"type": "success", "icon": "✅", "text": "Crop looks healthy! Continue current care."}
+            )
+
+        recommendations += [
+            {"type": "info",    "icon": "💧", "text": "Maintain 3–5 cm standing water during tillering."},
+            {"type": "success", "icon": "🌾", "text": f"Expected yield: {yield_tonnes} t/ha — {yield_category} performance."},
+            {"type": "info",    "icon": "🧪", "text": "Apply NPK 120:60:60 kg/ha for optimal growth."},
+        ]
+
         return jsonify({
+            # Disease result
             "disease": disease,
             "confidence": confidence,
             "medicine": disease_info.get("medicine", ""),
             "pesticide": disease_info.get("pesticide", ""),
             "recovery": disease_info.get("recovery", ""),
-            "severity": disease_info.get("severity", "Low"),
-            "predictions": prediction_list
+            "severity": disease_info.get("severity", "None"),
+            "predictions": prediction_list,
+
+            # Full report
+            "cropVariety": "Paddy — Oryza sativa",
+            "overallHealthScore": health_score,
+            "overallVerdict": "Diseased" if is_diseased else "Healthy",
+            "diseaseDetection": {
+                "primaryDisease": disease,
+                "confidence": confidence,
+                "medicine": disease_info.get("medicine", ""),
+                "pesticide": disease_info.get("pesticide", ""),
+                "recovery": disease_info.get("recovery", ""),
+                "classes": prediction_list
+            },
+            "yieldPrediction": {
+                "predictedYield": f"{yield_tonnes} t/ha",
+                "yieldConfidence": round(yield_info["r2_score"] * 100, 2),
+                "yieldCategory": yield_category,
+                "soilType": "Clayey loam",
+                "waterRequirement": "5–6 L/day",
+                "season": "Kharif (Jun–Nov)",
+                "harvestMonth": "October–November",
+                "fertilizer": "NPK 120:60:60 kg/ha",
+                "growthStage": "Tillering"
+            },
+            "recommendations": recommendations
         })
 
     except Exception as e:
@@ -230,33 +304,25 @@ def predict_disease():
 def predict_yield():
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
-
     try:
         data = request.get_json()
-
-        country = data.get("country", "India")
-        year = int(data.get("year", 2024))
-        rainfall = float(data.get("rainfall", 1200))
+        country    = data.get("country", "India")
+        year       = int(data.get("year", 2024))
+        rainfall   = float(data.get("rainfall", 1200))
         pesticides = float(data.get("pesticides", 121))
-        avg_temp = float(data.get("avg_temp", 28))
+        avg_temp   = float(data.get("avg_temp", 28))
 
         try:
             encoded_country = label_encoder.transform([country])[0]
         except:
             encoded_country = label_encoder.transform(["India"])[0]
 
-        features = np.array([[
-            encoded_country,
-            year,
-            rainfall,
-            pesticides,
-            avg_temp
-        ]])
-
+        features = np.array([[encoded_country, year, rainfall, pesticides, avg_temp]])
         pred = float(yield_model.predict(features)[0])
 
         return jsonify({
-            "predictedYield": round(pred / 10000, 2),
+            "country": country,
+            "predictedYield": f"{round(pred / 10000, 2)} t/ha",
             "yieldCategory": get_yield_category(pred),
             "confidence": round(float(yield_info["r2_score"]) * 100, 2)
         })
