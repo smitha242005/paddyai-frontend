@@ -1,4 +1,6 @@
+/* ── GLOBAL API URL ── */
 const PADDYAI_API = 'https://paddyai-backend.onrender.com';
+
 /* ── STATE ── */
 let currentUser = null;
 let uploadedFile = null;
@@ -29,7 +31,6 @@ function doLandingAuth(mode) {
   currentUser = { name, email };
   document.getElementById('nav-username').textContent = name;
 
-  // Fade out landing screen
   const ls = document.getElementById('landing-screen');
   ls.style.transition = 'opacity .4s ease';
   ls.style.opacity = '0';
@@ -44,11 +45,10 @@ function shakeInput(id) {
   setTimeout(() => { el.style.borderColor = ''; el.style.animation = ''; }, 1000);
 }
 
-/* ── LOGOUT (back to landing) ── */
+/* ── LOGOUT ── */
 function logout() {
   currentUser = null;
   closeMobileNav();
-  // Clear form fields
   ['l-email','l-pass','s-email','s-name','s-pass'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
@@ -61,4 +61,10 @@ function logout() {
     ls.style.transition = 'opacity .4s ease';
     ls.style.opacity = '1';
   });
-}// redeploy 
+}
+
+/* ── LEGACY ── */
+function openAuth(mode){}
+function closeAuth(e){ document.getElementById('auth-modal').classList.remove('open'); }
+function toggleAuthMode(){}
+function doAuth(){}
