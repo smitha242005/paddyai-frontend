@@ -79,7 +79,8 @@ async function runModel() {
   }, 650);
 
   try {
-    const diseaseResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/disease')}`, {
+    // ── Direct call to backend (no CORS proxy needed) ──
+    const diseaseResp = await fetch(PADDYAI_API + '/predict/disease', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: modelBase64 })
@@ -87,7 +88,7 @@ async function runModel() {
     if (!diseaseResp.ok) throw new Error(`Disease API error ${diseaseResp.status}`);
     const dis = await diseaseResp.json();
 
-    const yieldResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/yield')}`, {
+    const yieldResp = await fetch(PADDYAI_API + '/predict/yield', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ country: 'India', year: 2024, rainfall: 1200, pesticides: 121, avg_temp: 28 })
@@ -103,7 +104,7 @@ async function runModel() {
     await new Promise(r => setTimeout(r, 700));
     pbox.style.display = 'none';
 
-    const isHealthy = dis.confidence < 60;
+    const isHealthy = dis.disease === 'Healthy' || dis.confidence < 60;
     const healthScore = isHealthy ? 85 : Math.max(40, 95 - Math.round(dis.confidence * 0.4));
 
     const result = {
@@ -122,7 +123,7 @@ async function runModel() {
         classes: dis.predictions || []
       },
       yieldPrediction: {
-        predictedYield: `${yld.predictedYield} t/ha`,
+        predictedYield: yld.predictedYield,
         yieldConfidence: yld.confidence,
         yieldCategory: yld.yieldCategory,
         soilType: 'Clayey loam',
@@ -134,14 +135,14 @@ async function runModel() {
       },
       recommendations: isHealthy ? [
         { type: 'success', icon: '✅', text: 'Crop is healthy! Continue current irrigation and care.' },
-        { type: 'info', icon: '💧', text: 'Maintain 3–5 cm standing water during tillering stage.' },
+        { type: 'info',    icon: '💧', text: 'Maintain 3–5 cm standing water during tillering stage.' },
         { type: 'success', icon: '🌾', text: `Expected yield: ${yld.predictedYield} t/ha — ${yld.yieldCategory} performance.` },
-        { type: 'info', icon: '🧪', text: 'Apply NPK 120:60:60 kg/ha for optimal growth.' }
+        { type: 'info',    icon: '🧪', text: 'Apply NPK 120:60:60 kg/ha for optimal growth.' }
       ] : [
-        { type: 'danger', icon: '🦠', text: `Disease: ${dis.disease} (${dis.confidence}% confidence)` },
+        { type: 'danger',  icon: '🦠', text: `Disease: ${dis.disease} (${dis.confidence}% confidence)` },
         { type: 'warning', icon: '💊', text: `Medicine: ${dis.medicine}` },
         { type: 'warning', icon: '🧪', text: `Pesticide: ${dis.pesticide}` },
-        { type: 'info', icon: '🌿', text: `Recovery: ${dis.recovery}` },
+        { type: 'info',    icon: '🌿', text: `Recovery: ${dis.recovery}` },
         { type: 'success', icon: '🌾', text: `Expected yield: ${yld.predictedYield} t/ha — ${yld.yieldCategory} performance.` }
       ]
     };
@@ -153,7 +154,8 @@ async function runModel() {
     document.getElementById('model-results').style.display = 'block';
     document.getElementById('model-results').innerHTML = `
       <div style="background:#fff3f3;border:1.5px solid rgba(239,68,68,.25);border-radius:12px;padding:1.5rem;color:#b91c1c;line-height:1.8">
-        ⚠️ Cannot reach backend. Wait 20–30 seconds and try again.<br>
+        ⚠️ <strong>Failed to connect to backend.</strong><br>
+        Please wait 20–30 seconds and try again.<br>
         <small style="color:#aaa">Error: ${err.message}</small>
       </div>`;
   }

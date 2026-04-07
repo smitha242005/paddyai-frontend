@@ -61,7 +61,8 @@ async function analyzeImage() {
   }, 600);
 
   try {
-    const diseaseResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/disease')}`, {
+    // ── Direct call to backend (no CORS proxy needed) ──
+    const diseaseResp = await fetch(PADDYAI_API + '/predict/disease', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: uploadedBase64 })
@@ -69,7 +70,7 @@ async function analyzeImage() {
     if (!diseaseResp.ok) throw new Error(`Disease API error ${diseaseResp.status}`);
     const diseaseData = await diseaseResp.json();
 
-    const yieldResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/yield')}`, {
+    const yieldResp = await fetch(PADDYAI_API + '/predict/yield', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ country: 'India', year: 2024, rainfall: 1200, pesticides: 121, avg_temp: 28 })
@@ -84,7 +85,7 @@ async function analyzeImage() {
     await new Promise(r => setTimeout(r, 600));
     pbox.style.display = 'none';
 
-    const isHealthy = diseaseData.confidence < 60;
+    const isHealthy = diseaseData.disease === 'Healthy' || diseaseData.confidence < 60;
     const parsed = {
       cropType: 'Paddy — Oryza sativa',
       healthStatus: isHealthy ? 'Healthy' : 'Damaged',

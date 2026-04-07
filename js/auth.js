@@ -1,6 +1,6 @@
 /* ── GLOBAL API URL ── */
 const PADDYAI_API = 'https://paddyai-backend.onrender.com';
-const CORS_PROXY = 'https://corsproxy.io/?url=';
+const CORS_PROXY = '';   // ← FIXED: backend has CORS enabled, no proxy needed
 
 /* ── STATE ── */
 let currentUser = null;
