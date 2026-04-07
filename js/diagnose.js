@@ -53,14 +53,9 @@ function setModelStep(active) {
 }
 
 const modelMsgs = [
-  'Loading image into model…',
-  'Extracting crop features…',
-  'Running disease classification…',
-  'Detecting blast, blight & pest damage…',
-  'Computing confidence scores…',
-  'Running yield prediction algorithm…',
-  'Calculating harvest probability…',
-  'Generating full report…',
+  'Loading image into model…','Extracting crop features…','Running disease classification…',
+  'Detecting blast, blight & pest damage…','Computing confidence scores…',
+  'Running yield prediction algorithm…','Calculating harvest probability…','Generating full report…',
 ];
 
 async function runModel() {
@@ -68,7 +63,6 @@ async function runModel() {
   const btn = document.getElementById('model-run-btn');
   btn.disabled = true;
   setModelStep(2);
-
   const pbox = document.getElementById('model-progress-box');
   pbox.style.display = 'block';
   document.getElementById('model-results').style.display = 'none';
@@ -85,8 +79,7 @@ async function runModel() {
   }, 650);
 
   try {
-    // Call disease prediction
-    const diseaseResp = await fetch(`${PADDYAI_API}/predict/disease`, {
+    const diseaseResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/disease')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: modelBase64 })
@@ -94,8 +87,7 @@ async function runModel() {
     if (!diseaseResp.ok) throw new Error(`Disease API error ${diseaseResp.status}`);
     const dis = await diseaseResp.json();
 
-    // Call yield prediction
-    const yieldResp = await fetch(`${PADDYAI_API}/predict/yield`, {
+    const yieldResp = await fetch(`${CORS_PROXY}${encodeURIComponent(PADDYAI_API + '/predict/yield')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ country: 'India', year: 2024, rainfall: 1200, pesticides: 121, avg_temp: 28 })
@@ -111,7 +103,6 @@ async function runModel() {
     await new Promise(r => setTimeout(r, 700));
     pbox.style.display = 'none';
 
-    // Build unified result
     const isHealthy = dis.confidence < 60;
     const healthScore = isHealthy ? 85 : Math.max(40, 95 - Math.round(dis.confidence * 0.4));
 
@@ -121,7 +112,7 @@ async function runModel() {
       overallVerdict: isHealthy ? 'Good' : 'Poor',
       verdictSummary: isHealthy
         ? `Crop appears healthy. Yield model accuracy: ${yld.confidence}%`
-        : `${dis.disease} detected with ${dis.confidence}% confidence. Yield model accuracy: ${yld.confidence}%`,
+        : `${dis.disease} detected with ${dis.confidence}% confidence.`,
       diseaseDetection: {
         primaryDisease: isHealthy ? 'Healthy' : dis.disease,
         confidence: dis.confidence,
@@ -143,18 +134,17 @@ async function runModel() {
       },
       recommendations: isHealthy ? [
         { type: 'success', icon: '✅', text: 'Crop is healthy! Continue current irrigation and care.' },
-        { type: 'info',    icon: '💧', text: 'Maintain 3–5 cm standing water during tillering stage.' },
+        { type: 'info', icon: '💧', text: 'Maintain 3–5 cm standing water during tillering stage.' },
         { type: 'success', icon: '🌾', text: `Expected yield: ${yld.predictedYield} t/ha — ${yld.yieldCategory} performance.` },
-        { type: 'info',    icon: '🧪', text: 'Apply NPK 120:60:60 kg/ha for optimal growth.' }
+        { type: 'info', icon: '🧪', text: 'Apply NPK 120:60:60 kg/ha for optimal growth.' }
       ] : [
-        { type: 'danger',  icon: '🦠', text: `Disease: ${dis.disease} (${dis.confidence}% confidence)` },
+        { type: 'danger', icon: '🦠', text: `Disease: ${dis.disease} (${dis.confidence}% confidence)` },
         { type: 'warning', icon: '💊', text: `Medicine: ${dis.medicine}` },
         { type: 'warning', icon: '🧪', text: `Pesticide: ${dis.pesticide}` },
-        { type: 'info',    icon: '🌿', text: `Recovery: ${dis.recovery}` },
+        { type: 'info', icon: '🌿', text: `Recovery: ${dis.recovery}` },
         { type: 'success', icon: '🌾', text: `Expected yield: ${yld.predictedYield} t/ha — ${yld.yieldCategory} performance.` }
       ]
     };
-
     renderModelResults(result);
 
   } catch (err) {
@@ -162,8 +152,7 @@ async function runModel() {
     pbox.style.display = 'none';
     document.getElementById('model-results').style.display = 'block';
     document.getElementById('model-results').innerHTML = `
-      <div style="background:#fff3f3;border:1.5px solid rgba(239,68,68,.25);
-                  border-radius:12px;padding:1.5rem;color:#b91c1c;line-height:1.8">
+      <div style="background:#fff3f3;border:1.5px solid rgba(239,68,68,.25);border-radius:12px;padding:1.5rem;color:#b91c1c;line-height:1.8">
         ⚠️ Cannot reach backend. Wait 20–30 seconds and try again.<br>
         <small style="color:#aaa">Error: ${err.message}</small>
       </div>`;
@@ -178,21 +167,15 @@ function renderModelResults(d) {
   const scoreColor = score >= 75 ? '#5aad5a' : score >= 50 ? '#f59e0b' : '#ef4444';
   const circumference = 2 * Math.PI * 44;
   const dashOffset = circumference - (score / 100) * circumference;
-
   const diseaseRows = (dis.classes || []).map(c => {
     const isTop = c.name === dis.primaryDisease;
-    return `
-      <div class="disease-row">
-        <div class="disease-name"><span>${isTop ? '🎯' : '▸'}</span>${c.name}</div>
-        <div class="disease-bar-wrap">
-          <div class="disease-bar-fill" style="width:0%;background:${c.color||'#5aad5a'}" data-width="${c.confidence}%"></div>
-        </div>
-        <div class="disease-pct" style="color:${c.color||'#5aad5a'}">${c.confidence}%</div>
-      </div>`;
+    return `<div class="disease-row">
+      <div class="disease-name"><span>${isTop ? '🎯' : '▸'}</span>${c.name}</div>
+      <div class="disease-bar-wrap"><div class="disease-bar-fill" style="width:0%;background:${c.color||'#5aad5a'}" data-width="${c.confidence}%"></div></div>
+      <div class="disease-pct" style="color:${c.color||'#5aad5a'}">${c.confidence}%</div>
+    </div>`;
   }).join('');
-
   const verdictColor = d.overallVerdict === 'Good' ? 'green' : 'red';
-
   const recos = (d.recommendations || []).map(r => `
     <li class="reco-item ${r.type === 'warning' ? 'warn' : r.type === 'danger' ? 'danger' : ''}">
       <span class="reco-icon">${r.icon}</span>${r.text}
@@ -222,7 +205,6 @@ function renderModelResults(d) {
         </div>
       </div>
     </div>
-
     <div class="disease-detection-card">
       <div class="model-card-title"><span class="mct-icon">🔬</span> Disease Detection Results</div>
       <div style="background:var(--cream);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
@@ -238,9 +220,8 @@ function renderModelResults(d) {
       ${diseaseRows ? `<div class="disease-list">${diseaseRows}</div>` : ''}
       ${dis.medicine ? `<div style="margin-top:1rem;background:#fff3f3;border-radius:8px;padding:.8rem 1rem;font-size:.88rem"><strong style="color:#b91c1c">💊 Medicine: </strong>${dis.medicine}</div>` : ''}
       ${dis.pesticide ? `<div style="margin-top:.5rem;background:#fff8e1;border-radius:8px;padding:.8rem 1rem;font-size:.88rem"><strong style="color:#e65100">🧪 Pesticide: </strong>${dis.pesticide}</div>` : ''}
-      <p style="font-size:.76rem;color:var(--text-light);margin-top:1rem">* CNN model trained on Kaggle Rice Disease Dataset — Accuracy: 81.25%</p>
+      <p style="font-size:.76rem;color:var(--text-light);margin-top:1rem">* CNN model — Accuracy: 81.25%</p>
     </div>
-
     <div class="yield-pred-card">
       <div class="model-card-title"><span class="mct-icon">🌾</span> Yield Prediction Results</div>
       <div class="yield-metrics-grid">
@@ -252,30 +233,22 @@ function renderModelResults(d) {
         <div class="ym-box"><div class="ym-icon">🌱</div><div class="ym-label">Growth Stage</div><div class="ym-val" style="font-size:1rem">${yld.growthStage}</div><div class="ym-sub">Current stage</div></div>
       </div>
       <div class="confidence-meter">
-        <div class="cm-top"><div class="cm-label">🎯 Yield Prediction Confidence (R² Score)</div><div class="cm-pct">${yld.yieldConfidence}%</div></div>
+        <div class="cm-top"><div class="cm-label">🎯 Yield Prediction Confidence</div><div class="cm-pct">${yld.yieldConfidence}%</div></div>
         <div class="cm-bar-wrap"><div class="cm-bar" data-width="${yld.yieldConfidence}%" style="width:0%"></div></div>
       </div>
     </div>
-
     <div class="model-card">
       <div class="model-card-title"><span class="mct-icon">💡</span> Recommendations</div>
       <ul class="reco-list">${recos}</ul>
     </div>
-
-    <button class="btn-model-new" onclick="clearModelImage()">+ Run Diagnose on Another Image</button>
-  `;
+    <button class="btn-model-new" onclick="clearModelImage()">+ Run Diagnose on Another Image</button>`;
 
   const container = document.getElementById('model-results');
   container.innerHTML = html;
   container.style.display = 'block';
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
   setTimeout(() => {
-    container.querySelectorAll('.disease-bar-fill[data-width]').forEach(el => {
-      el.style.width = el.getAttribute('data-width');
-    });
-    container.querySelectorAll('.cm-bar[data-width]').forEach(el => {
-      el.style.width = el.getAttribute('data-width');
-    });
+    container.querySelectorAll('.disease-bar-fill[data-width]').forEach(el => { el.style.width = el.getAttribute('data-width'); });
+    container.querySelectorAll('.cm-bar[data-width]').forEach(el => { el.style.width = el.getAttribute('data-width'); });
   }, 100);
 }

@@ -1,5 +1,6 @@
 /* ── GLOBAL API URL ── */
 const PADDYAI_API = 'https://paddyai-backend.onrender.com';
+const CORS_PROXY = 'https://corsproxy.io/?url=';
 
 /* ── STATE ── */
 let currentUser = null;
@@ -30,7 +31,6 @@ function doLandingAuth(mode) {
   }
   currentUser = { name, email };
   document.getElementById('nav-username').textContent = name;
-
   const ls = document.getElementById('landing-screen');
   ls.style.transition = 'opacity .4s ease';
   ls.style.opacity = '0';
